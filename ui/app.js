@@ -396,6 +396,8 @@ function openSettings() {
   $("s-refresh").checked = s.refresh_shell;
   $("s-tray").checked = s.keep_in_tray;
   $("s-autostart").checked = s.autostart;
+  $("u-current").textContent = t("update.current", { v: s.version });
+  if (!state.update?.available) { $("u-status").textContent = ""; $("btn-u-install").hidden = true; }
   $("dlg-settings").showModal();
 }
 
@@ -415,6 +417,36 @@ async function saveSettings() {
   } catch (e) {
     toast(t("settings.failed") + e, true);
   }
+}
+
+// ------------------------------------------------------------ updates
+async function checkUpdate(silent = false) {
+  const status = $("u-status"), btn = $("btn-u-install");
+  if (!silent) { status.textContent = t("update.checking"); btn.hidden = true; }
+  try {
+    const u = await invoke("check_update");
+    state.update = u;
+    $("btn-settings").classList.toggle("has-update", u.available);
+    if (u.available) {
+      status.textContent = t("update.available", { v: u.latest }) + (u.notes ? "\n\n" + u.notes : "");
+      btn.textContent = t("update.install", { v: u.latest });
+      btn.hidden = false;
+      if (silent) toast(t("update.toast", { v: u.latest }), false, 6000);
+    } else if (!silent) {
+      status.textContent = t("update.latest");
+    }
+  } catch (e) {
+    if (!silent) status.textContent = t("update.failed") + e;
+  }
+}
+
+async function installUpdate() {
+  const btn = $("btn-u-install");
+  $("u-status").textContent = t("update.installing");
+  await busy(btn, async () => {
+    const msg = await invoke("install_update");
+    if (msg) { $("u-status").textContent = msg; toast(msg, false, 9000); }
+  });
 }
 
 // ------------------------------------------------------------ drag & drop
@@ -482,6 +514,8 @@ function bind() {
   $("dlg-match").addEventListener("close", () => {});
   $("btn-match-apply").addEventListener("click", (e) => { e.preventDefault(); applyMatches(); });
   $("btn-hard-refresh").addEventListener("click", (e) => busy(e.currentTarget, () => invoke("refresh_shell", { hard: true })));
+  $("btn-u-check").addEventListener("click", () => checkUpdate(false));
+  $("btn-u-install").addEventListener("click", installUpdate);
   $("btn-data-dir").addEventListener("click", () => invoke("reveal", { path: state.settings.data_dir }));
   document.addEventListener("keydown", (e) => {
     if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === "f") { e.preventDefault(); $("search").focus(); }
@@ -510,4 +544,5 @@ function bind() {
   await loadSettings();
   window._lastScan = Date.now();
   await loadApps();
+  setTimeout(() => checkUpdate(true), 3000);
 })();

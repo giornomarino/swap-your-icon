@@ -1,5 +1,6 @@
 pub mod i18n;
 mod imaging;
+mod updater;
 pub mod platform;
 
 use imaging::Shape;
@@ -614,6 +615,8 @@ struct SettingsView {
     data_dir: String,
     #[serde(default)]
     lang: String,
+    #[serde(default)]
+    version: String,
 }
 
 #[tauri::command]
@@ -628,6 +631,7 @@ fn get_settings(app: AppHandle, core: CoreState<'_>) -> SettingsView {
         platform: std::env::consts::OS.to_string(),
         data_dir: core.dir.to_string_lossy().to_string(),
         lang: i18n::lang().to_string(),
+        version: app.package_info().version.to_string(),
     }
 }
 
@@ -652,6 +656,31 @@ fn set_settings(app: AppHandle, core: CoreState<'_>, settings: SettingsView) -> 
         }
     }
     Ok(())
+}
+
+// ---------------------------------------------------------------- 一键更新
+
+#[tauri::command]
+async fn check_update(app: AppHandle) -> Result<updater::UpdateInfo, String> {
+    let current = app.package_info().version.to_string();
+    blocking(move || updater::check(&current)).await?
+}
+
+/// 下载并安装最新版；能自动替换时应用会退出并由新版本重新打开
+#[tauri::command]
+async fn install_update(app: AppHandle) -> Result<String, String> {
+    let current = app.package_info().version.to_string();
+    match blocking(move || updater::install(&current)).await?? {
+        updater::Installed::Restarting => {
+            let handle = app.clone();
+            std::thread::spawn(move || {
+                std::thread::sleep(Duration::from_millis(600));
+                handle.exit(0);
+            });
+            Ok(String::new())
+        }
+        updater::Installed::Manual(msg) => Ok(msg),
+    }
 }
 
 // ---------------------------------------------------------------- 启动
@@ -757,7 +786,9 @@ pub fn run() {
             delete_theme,
             reveal,
             get_settings,
-            set_settings
+            set_settings,
+            check_update,
+            install_update
         ])
         .build(tauri::generate_context!())
         .expect("error while building Swap Your Icon")

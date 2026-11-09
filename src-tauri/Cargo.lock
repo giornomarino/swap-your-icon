@@ -1373,7 +1373,7 @@ dependencies = [
 
 [[package]]
 name = "iconswap"
-version = "6703.0.0"
+version = "6704.0.0"
 dependencies = [
  "base64 0.22.1",
  "image",
@@ -1383,6 +1383,7 @@ dependencies = [
  "objc2-foundation",
  "serde",
  "serde_json",
+ "sha2",
  "sys-locale",
  "tauri",
  "tauri-build",

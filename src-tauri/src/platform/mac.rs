@@ -154,11 +154,13 @@ pub fn exec_op(op: &Op) -> Result<(), OpError> {
                 }
                 Err(OpError::Other(
                     tr(
-                        "macOS 拦截了对其他应用的修改。已打开「系统设置 → 隐私与安全性 → App 管理」，\
-                         请把 Swap Your Icon 打开后重试（用 cargo tauri dev 运行时，要打开的是你运行命令的终端，如「终端」或 iTerm）",
+                        "macOS 拦截了对其他应用的修改。已打开「系统设置 → 隐私与安全性 → App 管理」：\
+                         打开 Swap Your Icon 的开关后，从菜单栏图标选「退出」彻底退出，再重新打开（只关窗口不够）。\
+                         如果列表里已经开着，先关掉再打开一次。用 cargo tauri dev 运行时，要打开的是你运行命令的终端",
                         "macOS blocked changes to other apps. System Settings → Privacy & Security → App Management \
-                         has been opened — turn on Swap Your Icon there and try again (when running via cargo tauri dev, \
-                         turn on the terminal you ran it from instead, e.g. Terminal or iTerm)",
+                         has been opened: turn on Swap Your Icon, then fully quit it from the menu bar icon (closing the \
+                         window isn't enough) and reopen it. If it's already on, toggle it off and on again. When running \
+                         via cargo tauri dev, turn on the terminal you ran it from instead",
                     )
                     .into(),
                 ))
@@ -182,8 +184,8 @@ pub fn exec_op(op: &Op) -> Result<(), OpError> {
     if !ok {
         return Err(OpError::Other(
             tr(
-                "系统拒绝修改。请在「系统设置 → 隐私与安全性 → App 管理」里允许 Swap Your Icon 后重试",
-                "macOS refused the change. Allow Swap Your Icon in System Settings → Privacy & Security → App Management, then try again",
+                "系统拒绝修改。请在「系统设置 → 隐私与安全性 → App 管理」里允许 Swap Your Icon，然后从菜单栏图标选「退出」再重新打开",
+                "macOS refused the change. Allow Swap Your Icon in System Settings → Privacy & Security → App Management, then quit it from the menu bar icon and reopen it",
             )
             .into(),
         ));

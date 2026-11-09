@@ -12,6 +12,7 @@ Change the icons of apps on macOS and Windows: pick an app → drop in an image 
 - **Batch & themes**: pick a folder of images named after apps (`Google Chrome.png`) and they're matched and applied in one go. Save all your current custom icons as a theme — a theme is just such a folder, so you can share it or import it on another computer.
 - Multi-select with ⌘/Ctrl-click, Shift-click, ⌘/Ctrl+A to apply one image to several apps.
 - The interface follows your system language (English / 中文).
+- One-click updates: new releases are detected at launch and installed from Settings (downloaded from GitHub Releases and verified with SHA-256).
 
 ## How it works
 

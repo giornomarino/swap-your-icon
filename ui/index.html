@@ -130,6 +130,14 @@
       <label class="toggle"><input type="checkbox" id="s-refresh" /><span id="s-refresh-label"></span></label>
       <label class="toggle"><input type="checkbox" id="s-tray" /><span data-i18n="settings.tray"></span></label>
       <label class="toggle"><input type="checkbox" id="s-autostart" /><span data-i18n="settings.autostart"></span></label>
+      <div class="update-box">
+        <div class="update-head">
+          <div><b data-i18n="update.title"></b> <span class="sub" id="u-current"></span></div>
+          <button type="button" class="btn" id="btn-u-check" data-i18n="update.check"></button>
+        </div>
+        <p class="sub" id="u-status"></p>
+        <button type="button" class="btn primary" id="btn-u-install" hidden></button>
+      </div>
       <div class="settings-tools">
         <button type="button" class="btn" id="btn-hard-refresh"></button>
         <button type="button" class="btn ghost" id="btn-data-dir" data-i18n="settings.datadir"></button>
