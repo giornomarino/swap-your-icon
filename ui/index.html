@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Swap Your Icon</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brand-mark"></span>
+      <span>Swap Your Icon</span>
+    </div>
+    <div class="search">
+      <input id="search" type="search" data-i18n-ph="search.placeholder" autocomplete="off" spellcheck="false" />
+    </div>
+    <div class="filters" id="filters">
+      <button class="chip active" data-filter="all" data-i18n="filter.all"></button>
+      <button class="chip" data-filter="custom" data-i18n="filter.custom"></button>
+    </div>
+    <div class="actions">
+      <button class="btn ghost" id="btn-folder" data-i18n="btn.folder" data-i18n-title="btn.folder.title"></button>
+      <button class="btn ghost" id="btn-themes" data-i18n="btn.themes"></button>
+      <button class="btn ghost" id="btn-check" data-i18n="btn.check" data-i18n-title="btn.check.title"></button>
+      <button class="btn icon" id="btn-settings" data-i18n-title="btn.settings.title">⚙︎</button>
+    </div>
+  </header>
+
+  <main class="layout">
+    <section class="library">
+      <div class="library-head">
+        <span id="count"></span>
+        <span class="hint" data-i18n="hint.multiselect"></span>
+      </div>
+      <div id="grid" class="grid"></div>
+    </section>
+
+    <aside class="panel" id="panel">
+      <div class="empty-panel" id="panel-empty">
+        <div class="empty-art"></div>
+        <p data-i18n-html="panel.empty"></p>
+      </div>
+
+      <div id="panel-body" hidden>
+        <div class="target">
+          <div class="target-icons" id="target-icons"></div>
+          <div class="target-meta">
+            <h2 id="target-name"></h2>
+            <button class="link" id="target-path"></button>
+            <div class="target-badges" id="target-badges"></div>
+          </div>
+        </div>
+
+        <div class="swap">
+          <figure>
+            <div class="icon-well" id="well-current"></div>
+            <figcaption data-i18n="well.current"></figcaption>
+          </figure>
+          <div class="swap-arrow">→</div>
+          <figure>
+            <div class="icon-well drop" id="well-new" tabindex="0"></div>
+            <figcaption id="new-caption"></figcaption>
+          </figure>
+        </div>
+
+        <div class="field">
+          <label data-i18n="shape.label"></label>
+          <div class="segmented" id="shape">
+            <button data-shape="original" data-i18n="shape.original"></button>
+            <button data-shape="squircle" data-i18n="shape.squircle"></button>
+            <button data-shape="circle" data-i18n="shape.circle"></button>
+          </div>
+        </div>
+
+        <div class="panel-actions">
+          <button class="btn primary" id="btn-apply" disabled></button>
+          <button class="btn" id="btn-restore" hidden></button>
+        </div>
+        <p class="fineprint" id="fineprint"></p>
+      </div>
+    </aside>
+  </main>
+
+  <div class="drop-overlay" id="drop-overlay"><div data-i18n="drop.overlay"></div></div>
+
+  <!-- 批量匹配 / batch match -->
+  <dialog id="dlg-match">
+    <form method="dialog">
+      <h3 id="match-title"></h3>
+      <p class="sub" id="match-source"></p>
+      <div class="match-list" id="match-list"></div>
+      <div class="field inline">
+        <label data-i18n="shape.label"></label>
+        <div class="segmented" id="match-shape">
+          <button type="button" data-shape="original" data-i18n="shape.original"></button>
+          <button type="button" data-shape="squircle" data-i18n="shape.squircle"></button>
+          <button type="button" data-shape="circle" data-i18n="shape.circle"></button>
+        </div>
+      </div>
+      <div class="dlg-actions">
+        <button class="btn" value="cancel" data-i18n="common.cancel"></button>
+        <button class="btn primary" id="btn-match-apply" value="apply" data-i18n="match.apply"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- 主题 / themes -->
+  <dialog id="dlg-themes">
+    <form method="dialog">
+      <h3 data-i18n="themes.title"></h3>
+      <p class="sub" data-i18n="themes.sub"></p>
+      <div class="save-theme">
+        <input id="theme-name" data-i18n-ph="themes.name.placeholder" />
+        <button type="button" class="btn primary" id="btn-theme-save" data-i18n="themes.save"></button>
+      </div>
+      <div class="theme-list" id="theme-list"></div>
+      <div class="dlg-actions">
+        <button class="btn" value="close" data-i18n="common.done"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- 设置 / settings -->
+  <dialog id="dlg-settings">
+    <form method="dialog">
+      <h3 data-i18n="settings.title"></h3>
+      <label class="toggle"><input type="checkbox" id="s-auto" /><span data-i18n="settings.auto"></span></label>
+      <label class="row"><span data-i18n="settings.interval.pre"></span> <input type="number" id="s-interval" min="1" max="1440" /> <span data-i18n="settings.interval.post"></span></label>
+      <label class="toggle"><input type="checkbox" id="s-refresh" /><span id="s-refresh-label"></span></label>
+      <label class="toggle"><input type="checkbox" id="s-tray" /><span data-i18n="settings.tray"></span></label>
+      <label class="toggle"><input type="checkbox" id="s-autostart" /><span data-i18n="settings.autostart"></span></label>
+      <div class="settings-tools">
+        <button type="button" class="btn" id="btn-hard-refresh"></button>
+        <button type="button" class="btn ghost" id="btn-data-dir" data-i18n="settings.datadir"></button>
+      </div>
+      <div class="dlg-actions">
+        <button class="btn" value="cancel" data-i18n="common.cancel"></button>
+        <button class="btn primary" id="btn-settings-save" value="save" data-i18n="common.save"></button>
+      </div>
+    </form>
+  </dialog>
+
+  <div class="toasts" id="toasts"></div>
+  <script src="i18n.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
