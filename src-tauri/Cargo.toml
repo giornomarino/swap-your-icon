@@ -1,6 +1,6 @@
 [package]
 name = "iconswap"
-version = "6704.0.0"
+version = "6705.0.0"
 description = "Swap Your Icon — 给 Mac / Windows 应用换图标"
 edition = "2021"
 

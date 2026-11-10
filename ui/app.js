@@ -94,7 +94,7 @@ async function loadIcons(ids, force = false) {
   }
 }
 
-function visibleApps() {
+function matchingApps() {
   const q = state.query.trim().toLowerCase();
   return state.apps.filter((a) => {
     if (state.filter === "custom" && !a.customized) return false;
@@ -103,9 +103,43 @@ function visibleApps() {
   });
 }
 
+// 系统保护的应用（改不了）单独收进页面底部的一个可折叠分组
+const GROUP_KEY = "protectedGroupOpen";
+function groupOpen() {
+  if (state.query.trim()) return true; // 搜索时自动展开
+  try { return localStorage.getItem(GROUP_KEY) === "1"; } catch { return false; }
+}
+function setGroupOpen(v) {
+  try { localStorage.setItem(GROUP_KEY, v ? "1" : "0"); } catch {}
+}
+
+/** 页面上按顺序显示（可点选）的应用：可修改的在前，系统应用分组展开时排在后面 */
+function visibleApps() {
+  const all = matchingApps();
+  const editable = all.filter((a) => !a.protected);
+  return groupOpen() ? editable.concat(all.filter((a) => a.protected)) : editable;
+}
+
+function makeTile(a) {
+  const tile = document.createElement("button");
+  tile.className = "tile" + (state.selected.has(a.id) ? " selected" : "") + (a.protected ? " protected" : "");
+  tile.dataset.id = a.id;
+  tile.title = a.protected ? `${a.name}\n${t("tile.protected")}` : `${a.name}\n${a.path}`;
+  const icon = state.icons.get(a.id);
+  if (icon) tile.appendChild(Object.assign(img(icon), { className: "ic" }));
+  else tile.appendChild(Object.assign(document.createElement("div"), { className: "ph ic" }));
+  const n = document.createElement("div");
+  n.className = "name";
+  n.textContent = a.name;
+  tile.appendChild(n);
+  if (a.customized) tile.appendChild(Object.assign(document.createElement("span"), { className: "dot" }));
+  tile.addEventListener("click", (e) => onTileClick(e, a.id));
+  return tile;
+}
+
 function renderGrid() {
   const grid = $("grid");
-  const apps = visibleApps();
+  const apps = matchingApps();
   const custom = state.apps.filter((a) => a.customized).length;
   $("count").textContent = t("count.summary", { n: state.apps.length, c: custom });
   grid.replaceChildren();
@@ -117,21 +151,27 @@ function renderGrid() {
     return;
   }
   const frag = document.createDocumentFragment();
-  for (const a of apps) {
-    const tile = document.createElement("button");
-    tile.className = "tile" + (state.selected.has(a.id) ? " selected" : "") + (a.protected ? " protected" : "");
-    tile.dataset.id = a.id;
-    tile.title = a.protected ? `${a.name}\n${t("tile.protected")}` : `${a.name}\n${a.path}`;
-    const icon = state.icons.get(a.id);
-    if (icon) tile.appendChild(Object.assign(img(icon), { className: "ic" }));
-    else tile.appendChild(Object.assign(document.createElement("div"), { className: "ph ic" }));
-    const n = document.createElement("div");
-    n.className = "name";
-    n.textContent = a.name;
-    tile.appendChild(n);
-    if (a.customized) tile.appendChild(Object.assign(document.createElement("span"), { className: "dot" }));
-    tile.addEventListener("click", (e) => onTileClick(e, a.id));
-    frag.appendChild(tile);
+  const editable = apps.filter((a) => !a.protected);
+  const locked = apps.filter((a) => a.protected);
+  editable.forEach((a) => frag.appendChild(makeTile(a)));
+  if (locked.length) {
+    const open = groupOpen();
+    const head = document.createElement("button");
+    head.className = "group-head" + (open ? " open" : "");
+    head.setAttribute("aria-expanded", String(open));
+    const chev = Object.assign(document.createElement("span"), { className: "chev", textContent: "›" });
+    const title = Object.assign(document.createElement("span"), { textContent: t("group.protected", { n: locked.length }) });
+    const hint = Object.assign(document.createElement("small"), { textContent: t("group.protected.hint") });
+    head.append(chev, title, hint);
+    head.addEventListener("click", () => {
+      const next = !groupOpen();
+      setGroupOpen(next);
+      if (!next) locked.forEach((a) => state.selected.delete(a.id));
+      renderGrid();
+      renderPanel();
+    });
+    frag.appendChild(head);
+    if (open) locked.forEach((a) => frag.appendChild(makeTile(a)));
   }
   grid.appendChild(frag);
 }
@@ -379,14 +419,20 @@ async function saveTheme() {
 // ------------------------------------------------------------ settings
 async function loadSettings() {
   state.settings = await invoke("get_settings");
+  state.shape = await invoke("default_shape");
+  setSegmented($("shape"), state.shape);
+  refreshTexts();
+}
+
+/** 按当前语言重新填写所有文字 */
+function refreshTexts() {
   const s = state.settings;
   applyI18n(s.lang);
   const mac = s.platform === "macos";
-  state.shape = await invoke("default_shape");
-  setSegmented($("shape"), state.shape);
   $("s-refresh-label").textContent = t(mac ? "settings.refresh.mac" : "settings.refresh.win");
   $("btn-hard-refresh").textContent = t(mac ? "settings.hard.mac" : "settings.hard.win");
   $("fineprint").textContent = t(mac ? "fineprint.mac" : "fineprint.win");
+  $("u-current").textContent = t("update.current", { v: s.version });
 }
 
 function openSettings() {
@@ -396,6 +442,7 @@ function openSettings() {
   $("s-refresh").checked = s.refresh_shell;
   $("s-tray").checked = s.keep_in_tray;
   $("s-autostart").checked = s.autostart;
+  $("s-language").value = s.language || "system";
   $("u-current").textContent = t("update.current", { v: s.version });
   if (!state.update?.available) { $("u-status").textContent = ""; $("btn-u-install").hidden = true; }
   $("dlg-settings").showModal();
@@ -409,10 +456,18 @@ async function saveSettings() {
     refresh_shell: $("s-refresh").checked,
     keep_in_tray: $("s-tray").checked,
     autostart: $("s-autostart").checked,
+    language: $("s-language").value,
   };
   try {
     await invoke("set_settings", { settings: s });
+    const prevLang = state.settings.lang;
     state.settings = await invoke("get_settings");
+    if (state.settings.lang !== prevLang) {
+      refreshTexts();
+      renderGrid();
+      renderPanel();
+      if (state.update?.available) checkUpdate(false);
+    }
     toast(t("settings.saved"));
   } catch (e) {
     toast(t("settings.failed") + e, true);

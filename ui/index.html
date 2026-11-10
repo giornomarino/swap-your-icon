@@ -125,6 +125,13 @@
   <dialog id="dlg-settings">
     <form method="dialog">
       <h3 data-i18n="settings.title"></h3>
+      <label class="row lang-row"><span data-i18n="settings.language"></span>
+        <select id="s-language">
+          <option value="system" data-i18n="settings.language.system"></option>
+          <option value="en">English</option>
+          <option value="zh">中文</option>
+        </select>
+      </label>
       <label class="toggle"><input type="checkbox" id="s-auto" /><span data-i18n="settings.auto"></span></label>
       <label class="row"><span data-i18n="settings.interval.pre"></span> <input type="number" id="s-interval" min="1" max="1440" /> <span data-i18n="settings.interval.post"></span></label>
       <label class="toggle"><input type="checkbox" id="s-refresh" /><span id="s-refresh-label"></span></label>

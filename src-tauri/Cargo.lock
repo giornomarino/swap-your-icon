@@ -1373,7 +1373,7 @@ dependencies = [
 
 [[package]]
 name = "iconswap"
-version = "6704.0.0"
+version = "6705.0.0"
 dependencies = [
  "base64 0.22.1",
  "image",

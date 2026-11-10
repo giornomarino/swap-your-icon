@@ -45,11 +45,19 @@ struct Settings {
     interval_min: u32,
     refresh_shell: bool,
     keep_in_tray: bool,
+    /// "system" / "en" / "zh"
+    language: String,
 }
 
 impl Default for Settings {
     fn default() -> Self {
-        Settings { auto_reapply: true, interval_min: 10, refresh_shell: true, keep_in_tray: true }
+        Settings {
+            auto_reapply: true,
+            interval_min: 10,
+            refresh_shell: true,
+            keep_in_tray: true,
+            language: "system".into(),
+        }
     }
 }
 
@@ -613,8 +621,12 @@ struct SettingsView {
     autostart: bool,
     platform: String,
     data_dir: String,
+    /// 实际生效的语言（只读）
     #[serde(default)]
     lang: String,
+    /// 语言偏好："system" / "en" / "zh"
+    #[serde(default)]
+    language: String,
     #[serde(default)]
     version: String,
 }
@@ -631,6 +643,7 @@ fn get_settings(app: AppHandle, core: CoreState<'_>) -> SettingsView {
         platform: std::env::consts::OS.to_string(),
         data_dir: core.dir.to_string_lossy().to_string(),
         lang: i18n::lang().to_string(),
+        language: s.language,
         version: app.package_info().version.to_string(),
     }
 }
@@ -644,9 +657,15 @@ fn set_settings(app: AppHandle, core: CoreState<'_>, settings: SettingsView) -> 
             interval_min: settings.interval_min.clamp(1, 1440),
             refresh_shell: settings.refresh_shell,
             keep_in_tray: settings.keep_in_tray,
+            language: match settings.language.as_str() {
+                "en" | "zh" => settings.language.clone(),
+                _ => "system".into(),
+            },
         };
     }
     core.save();
+    i18n::set_choice(&settings.language);
+    refresh_tray_text(&app);
     let al = app.autolaunch();
     if settings.autostart != al.is_enabled().unwrap_or(false) {
         if settings.autostart {
@@ -685,6 +704,21 @@ async fn install_update(app: AppHandle) -> Result<String, String> {
 
 // ---------------------------------------------------------------- 启动
 
+struct TrayItems {
+    show: MenuItem<tauri::Wry>,
+    check: MenuItem<tauri::Wry>,
+    quit: MenuItem<tauri::Wry>,
+}
+
+/// 按当前语言刷新菜单栏 / 托盘菜单文字
+fn refresh_tray_text(app: &AppHandle) {
+    if let Some(items) = app.try_state::<TrayItems>() {
+        let _ = items.show.set_text(i18n::tr("打开 Swap Your Icon", "Open Swap Your Icon"));
+        let _ = items.check.set_text(i18n::tr("检查并重套图标", "Check & Reapply Icons"));
+        let _ = items.quit.set_text(i18n::tr("退出", "Quit"));
+    }
+}
+
 fn show_main(app: &AppHandle) {
     if let Some(w) = app.get_webview_window("main") {
         let _ = w.show();
@@ -720,10 +754,13 @@ pub fn run() {
             let core = Arc::new(Core::load(dir));
             app.manage(core.clone());
 
-            let show = MenuItem::with_id(app, "show", i18n::tr("打开 Swap Your Icon", "Open Swap Your Icon"), true, None::<&str>)?;
-            let check = MenuItem::with_id(app, "check", i18n::tr("检查并重套图标", "Check & Reapply Icons"), true, None::<&str>)?;
-            let quit = MenuItem::with_id(app, "quit", i18n::tr("退出", "Quit"), true, None::<&str>)?;
+            i18n::set_choice(&core.settings().language);
+            let show = MenuItem::with_id(app, "show", "", true, None::<&str>)?;
+            let check = MenuItem::with_id(app, "check", "", true, None::<&str>)?;
+            let quit = MenuItem::with_id(app, "quit", "", true, None::<&str>)?;
             let menu = Menu::with_items(app, &[&show, &check, &quit])?;
+            app.manage(TrayItems { show, check, quit });
+            refresh_tray_text(app.handle());
             let tray_core = core.clone();
             TrayIconBuilder::new()
                 .icon(tauri::image::Image::from_bytes(include_bytes!("../icons/tray.png"))?)
